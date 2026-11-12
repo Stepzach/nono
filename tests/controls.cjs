@@ -40,8 +40,8 @@ assert(Math.abs(run('camera.x-albums[3].x-80'))<.01,'Mobile pan snaps to the clu
 assert.equal(run('camera.z'),before,'Mobile snap automatically zooms');assert(run('albums[3].scale')===1);
 assert.equal(run('JSON.stringify(cards.map(c=>[c.x,c.y,c.album.x,c.album.y]))'),positions);
 assert(run('cards.every(c=>Math.abs((c.worldX-camera.x)*camera.z)>=width/2+c.w*camera.z/2||Math.abs((c.worldY-camera.y)*camera.z)>=height/2+(c.h+30)*camera.z/2||c.el.style.visibility==="visible")'));
-assert.equal(run('cards.filter(c=>c.pinned).length'),8);
-assert(run('cards.filter(c=>c.photo.overviewPosition).length===4&&cards.filter(c=>c.photo.overviewPosition).every(c=>c.pinned&&c.worldX===c.photo.overviewPosition.x&&c.worldY===c.photo.overviewPosition.y)'));
+assert.equal(run('cards.filter(c=>c.pinned).length'),9);
+assert(run('cards.filter(c=>c.photo.overviewPosition).length===5&&cards.filter(c=>c.photo.overviewPosition).every(c=>c.pinned&&Math.abs(c.worldX-c.photo.overviewPosition.x)<.001&&Math.abs(c.worldY-c.photo.overviewPosition.y)<.001)'));
 assert.equal(run('albums.reduce((n,a)=>n+a.blocks.length,0)'),11);
 assert(run('imageLoads<=3'));
 const writes=run('cards.reduce((n,c)=>n+c.button.tabWrites,0)');

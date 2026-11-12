@@ -8,7 +8,7 @@ const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 const camera = { x: 0, y: 0, z: 1 };
 const albums = [], cards = [], pointers = new Map(), imageQueue = [];
 let imageLoads = 0, desiredZoom = 1;
-const assetVersion = "heart-6";
+const assetVersion = "heart-7";
 let width = innerWidth, height = innerHeight, frame = 0, previousTime = 0;
 let vx = 0, vy = 0, flight = null, wheelTimer, manualZoom = 1;
 let suppressClickUntil = 0, lastPointerTime = 0, dragDistance = 0;
@@ -248,7 +248,7 @@ function makePhoto(photo,album,x,y,w,index) {
 }
 async function init() {
   if(document.fonts) { await document.fonts.load('400 27px Newsreader'); await document.fonts.ready; }
-  const response=await fetch('albums.json?v=heart-6');if(!response.ok)throw Error('The album list could not be loaded.');
+  const response=await fetch('albums.json?v=heart-7');if(!response.ok)throw Error('The album list could not be loaded.');
   const data=await response.json();
   data.forEach((album,i)=>{
     album.el=document.createElement('section');album.el.className='cluster-group';album.el.setAttribute('aria-label',album.name);album.scale=1;

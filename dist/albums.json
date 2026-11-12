@@ -277,7 +277,7 @@
         "source": "Goofy Nono/Medium/IMG_6969.jpg",
         "overviewPosition": {
           "x": 145,
-          "y": -1100
+          "y": -1000
         },
         "displayScale": 0.96
       },
@@ -292,7 +292,7 @@
         "source": "Goofy Nono/Medium/IMG_6996.jpg",
         "overviewPosition": {
           "x": 145,
-          "y": -715
+          "y": -615
         }
       },
       {
@@ -545,7 +545,7 @@
         "source": "Music with Nono/Medium/07500a46-f1d0-4cc6-95da-9e9596b18bb9.jpg",
         "overviewPosition": {
           "x": -145,
-          "y": -1080
+          "y": -980
         },
         "displayScale": 0.96
       },
@@ -617,7 +617,11 @@
         "height": 2048,
         "src": "assets/ddcdde8b8ddfdae1-thumb.webp",
         "full": "assets/ddcdde8b8ddfdae1-full.webp",
-        "source": "Music with Nono/Medium/9d226346-29e8-4d88-9223-b1e80a1ed488.jpg"
+        "source": "Music with Nono/Medium/9d226346-29e8-4d88-9223-b1e80a1ed488.jpg",
+        "overviewPosition": {
+          "x": -275.787,
+          "y": -563.809
+        }
       },
       {
         "id": "7788e22d763342bf",

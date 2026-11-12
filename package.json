@@ -2,7 +2,7 @@
   "name": "my-nono",
   "version": "1.0.0",
   "private": true,
-  "description": "A quiet, freely pannable world of memories.",
+  "description": "Je aime toi",
   "scripts": {
     "start": "python3 -m http.server 4173 --bind 127.0.0.1 --directory dist",
     "check": "node --check dist/app.js",
