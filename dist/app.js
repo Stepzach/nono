@@ -5,7 +5,9 @@ const photoDialog = document.querySelector('#photo-dialog');
 const status = document.querySelector('#status');
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 const camera = { x: 0, y: 0, z: 1 };
-const albums = [], cards = [], pointers = new Map();
+const albums = [], cards = [], pointers = new Map(), imageQueue = [];
+let imageLoads = 0, desiredZoom = 1;
+const assetVersion = "mobile-2";
 let width = innerWidth, height = innerHeight, frame = 0, previousTime = 0;
 let vx = 0, vy = 0, flight = null, wheelTimer, manualZoom = 1;
 let suppressClickUntil = 0, lastPointerTime = 0, dragDistance = 0;
@@ -17,7 +19,26 @@ const homeZoom = () => Math.min(1,(height-65)/670,(width-42)/440);
 const baseZoom = () => homeZoom() * .70;
 function requestFrame() { if(!frame) frame=requestAnimationFrame(render); }
 function nearest(x=camera.x,y=camera.y) {
-  return albums.map(a=>({album:a,distance:Math.hypot(x-a.x,y-a.y)})).sort((a,b)=>a.distance-b.distance)[0];
+  let found=null;
+  for(const album of albums)for(const block of album.blocks) {
+    const bx=album.x+block.x,by=album.y+block.y,distance=Math.hypot(x-bx,y-by);
+    if(!found||distance<found.distance)found={album,block,distance,x:bx,y:by};
+  }
+  return found;
+}
+function zoomFor(x,y) {
+  let focus=0;
+  for(const a of albums)for(const b of a.blocks) {
+    const bx=a.x+b.x,by=a.y+b.y,home=Math.hypot(bx,by);
+    focus=Math.max(focus,smooth((home-Math.hypot(x-bx,y-by))/Math.max(1,home-230)));
+  }
+  return clamp((baseZoom()+(homeZoom()*1.15-baseZoom())*focus)*manualZoom,.12,1.8);
+}
+function pumpImages() {
+  while(imageLoads<3&&imageQueue.length) {
+    const c=imageQueue.shift();imageLoads++;c.img.src=c.photo.src+'?v='+assetVersion;
+    Promise.resolve(c.img.decode?.()).catch(()=>{}).finally(()=>{imageLoads--;pumpImages();});
+  }
 }
 function layout() {
   const z=baseZoom();
@@ -35,37 +56,57 @@ function layout() {
   const letterScale=homeZoom()/baseZoom();
   letter.style.transform=`translate(-50%,-50%) scale(${letterScale})`;
   const occupied=[{x:0,y:0,w:(letter.offsetWidth||410)*letterScale+34,h:(letter.offsetHeight||557)*letterScale+34}];
-  // Reserve the longest messages first, then nudge neighboring albums outward
-  // only as far as needed to keep every paragraph separate and fully readable.
-  const labels=albums.map(a=>({album:a,w:(a.label.offsetWidth||310)+24,h:(a.label.offsetHeight||244)+24})).sort((a,b)=>b.h-a.h);
-  for(const box of labels) {
-    const a=box.album,direction=Math.atan2(a.y,a.x);
-    while(occupied.some(other=>Math.abs(a.x-other.x)<(box.w+other.w)/2&&Math.abs(a.y-other.y)<(box.h+other.h)/2)) {
+  // Alternate story blocks with actual album photographs. Keep the first text
+  // block at the album center, with continuations below it in reading order.
+  for(const a of albums) {
+    const own=cards.filter(c=>c.album===a);a.shapes=[];
+    a.blocks.forEach((block,i)=>{
+      block.w=block.el.offsetWidth||310;block.h=block.el.offsetHeight||244;block.x=0;
+      if(i===0)block.y=0;
+      else {
+        const previous=a.blocks[i-1],photo=own[i-1];photo.pinned=true;photo.x=0;
+        photo.y=previous.y+previous.h/2+32+(photo.h+26)/2;
+        a.shapes.push({x:photo.x,y:photo.y,w:photo.w*1.08+14,h:photo.h*1.08+36});
+        block.y=photo.y+(photo.h+26)/2+32+block.h/2;
+      }
+      a.shapes.push({x:block.x,y:block.y,w:block.w+24,h:block.h+24});
+      block.el.style.left=block.x+'px';block.el.style.top=block.y+'px';
+    });
+  }
+  const overlaps=(a,b)=>Math.abs(a.x-b.x)<(a.w+b.w)/2&&Math.abs(a.y-b.y)<(a.h+b.h)/2;
+  const stories=[...albums].sort((a,b)=>b.shapes.reduce((n,s)=>n+s.h,0)-a.shapes.reduce((n,s)=>n+s.h,0));
+  for(const a of stories) {
+    const direction=Math.atan2(a.y,a.x);
+    while(a.shapes.some(shape=>occupied.some(other=>overlaps({...shape,x:shape.x+a.x,y:shape.y+a.y},other)))) {
       a.x+=Math.cos(direction)*24;a.y+=Math.sin(direction)*24;
     }
-    a.homeDistance=Math.hypot(a.x,a.y);
-    a.el.style.transform=`translate(${a.x}px,${a.y}px)`;
-    occupied.push({x:a.x,y:a.y,w:box.w,h:box.h});
+    a.homeDistance=Math.hypot(a.x,a.y);a.el.style.transform=`translate(${a.x}px,${a.y}px)`;
+    occupied.push(...a.shapes.map(shape=>({...shape,x:shape.x+a.x,y:shape.y+a.y})));
   }
-  const byAlbum=albums.map(a=>cards.filter(c=>c.album===a));
+  const byAlbum=albums.map(a=>cards.filter(c=>c.album===a&&!c.pinned));
   const ordered=[];
   for(let i=0;byAlbum.some(group=>group[i]);i++)byAlbum.forEach(group=>{if(group[i])ordered.push(group[i]);});
   for(const c of ordered) {
     const box={w:c.w*1.08+14,h:c.h*1.08+36};
+    const block=c.album.blocks[c.index%c.album.blocks.length];
+    const count=byAlbum[albums.indexOf(c.album)].length;
+    const preferred=c.index/Math.max(1,count)*Math.PI*2-Math.PI/2;
     let position=null;
-    // Small angular steps fill gaps between differently sized photographs.
     for(let radius=140;!position;radius+=24) {
-      const count=Math.ceil(2*Math.PI*radius/42);
-      for(let step=0;step<count;step++) {
-        const angle=step/count*Math.PI*2-Math.PI/2+(c.index%3)*.13;
-        const candidate={x:c.album.x+Math.cos(angle)*radius,y:c.album.y+Math.sin(angle)*radius,...box};
-        if(!occupied.some(other=>Math.abs(candidate.x-other.x)<(candidate.w+other.w)/2&&Math.abs(candidate.y-other.y)<(candidate.h+other.h)/2)) {
-          position=candidate;break;
-        }
+      const steps=Math.ceil(2*Math.PI*radius/42);
+      for(let step=0;step<steps;step++) {
+        // Spread photos around the text, with balanced fallback on both sides.
+        const offset=(step%2?-1:1)*Math.ceil(step/2)/steps*Math.PI*2;
+        const angle=preferred+offset;
+        const candidate={x:c.album.x+block.x+Math.cos(angle)*radius,y:c.album.y+block.y+Math.sin(angle)*radius,...box};
+        if(!occupied.some(other=>overlaps(candidate,other))) {position=candidate;break;}
       }
     }
     occupied.push(position);c.x=position.x-c.album.x;c.y=position.y-c.album.y;
+  }
+  for(const c of cards) {
     c.el.style.left=`${c.x}px`;c.el.style.top=`${c.y}px`;
+    c.worldX=c.album.x+c.x;c.worldY=c.album.y+c.y;
   }
   // Include every photograph and caption, even the ones packed past their album.
   sceneBounds={
@@ -73,11 +114,12 @@ function layout() {
     top:Math.min(...occupied.map(b=>b.y-b.h/2)),bottom:Math.max(...occupied.map(b=>b.y+b.h/2))
   };
 }
-function stopMotion() { flight=null;vx=vy=0;snapPending=false;clearTimeout(wheelTimer);wheelTimer=null; }
+function stopMotion() { desiredZoom=camera.z;flight=null;vx=vy=0;snapPending=false;clearTimeout(wheelTimer);wheelTimer=null; }
 function goTo(x,y) {
   stopMotion();
-  if(reducedMotion.matches) Object.assign(camera,{x,y});
-  else flight={from:{x:camera.x,y:camera.y},to:{x,y},start:performance.now()};
+  desiredZoom=zoomFor(x,y);
+  if(reducedMotion.matches) Object.assign(camera,{x,y,z:desiredZoom});
+  else flight={from:{...camera},to:{x,y,z:desiredZoom},start:performance.now()};
   requestFrame();
 }
 function beginGesture() {
@@ -89,49 +131,53 @@ function maybeSnap() {
   const travel=Math.hypot(camera.x-gestureStart.x,camera.y-gestureStart.y),n=nearest();
   // Small movements inside a cluster stay exactly where the visitor leaves them.
   if(n&&travel>120&&(!gestureStart.inside||travel>480)&&n.distance<Math.min(510,n.album.homeDistance*.6)) {
-    goTo(n.album.x,n.album.y);status.textContent=n.album.name;
+    goTo(n.x,n.y);status.textContent=n.album.name;
   }
+  if(!flight&&!gestureStart.inside)desiredZoom=zoomFor(camera.x,camera.y);
   gestureStart=null;
 }
 function render(time) {
   frame=0;const dt=Math.min(40,time-(previousTime||time-16));previousTime=time;
   if(flight) {
-    const t=clamp((time-flight.start)/1050,0,1),ease=1-Math.pow(1-t,3);
+    const t=clamp((time-flight.start)/800,0,1),ease=1-Math.pow(1-t,3);
     camera.x=flight.from.x+(flight.to.x-flight.from.x)*ease;
     camera.y=flight.from.y+(flight.to.y-flight.from.y)*ease;
+    camera.z=flight.from.z+(flight.to.z-flight.from.z)*ease;
     if(t===1)flight=null;
   } else if(!pointers.size&&Math.abs(vx)+Math.abs(vy)>.015) {
     camera.x-=vx*dt/camera.z;camera.y-=vy*dt/camera.z;
     const decay=Math.pow(.85,dt/16.67);vx*=decay;vy*=decay;
   } else if(snapPending&&!pointers.size) { vx=vy=0;maybeSnap(); }
-  let focus=0;
-  for(const a of albums) {
-    const d=Math.hypot(camera.x-a.x,camera.y-a.y);
-    const proximity=smooth((a.homeDistance-d)/Math.max(1,a.homeDistance-230));
-    focus=Math.max(focus,proximity);
-    a.proximity=proximity;a.distance=d;
+  // Do not change scale underneath a moving finger or active scroll gesture.
+  const zoomActive=!flight&&!pointers.size&&!wheelTimer&&Math.abs(vx)+Math.abs(vy)<=.015;
+  if(zoomActive) {
+    camera.z=reducedMotion.matches?desiredZoom:camera.z+(desiredZoom-camera.z)*(1-Math.exp(-dt/150));
+    if(Math.abs(camera.z-desiredZoom)<.001)camera.z=desiredZoom;
   }
-  const targetZ=clamp((baseZoom()+(homeZoom()*1.15-baseZoom())*focus)*manualZoom,.12,1.8);
-  camera.z=reducedMotion.matches?targetZ:camera.z+(targetZ-camera.z)*(1-Math.exp(-dt/100));
-  if(Math.abs(camera.z-targetZ)<.0001)camera.z=targetZ;
   const halfWidth=width/(2*camera.z),halfHeight=height/(2*camera.z),edgeMargin=40/camera.z;
   camera.x=clamp(camera.x,Math.min(0,sceneBounds.left+halfWidth-edgeMargin),Math.max(0,sceneBounds.right-halfWidth+edgeMargin));
   camera.y=clamp(camera.y,Math.min(0,sceneBounds.top+halfHeight-edgeMargin),Math.max(0,sceneBounds.bottom-halfHeight+edgeMargin));
   world.style.transform=`translate(${width/2-camera.x*camera.z}px,${height/2-camera.y*camera.z}px) scale(${camera.z})`;
   for(const c of cards) {
-    const x=c.album.x+c.x*c.album.scale,y=c.album.y+c.y*c.album.scale,z=camera.z*c.album.scale;
-    const sx=(x-camera.x)*camera.z,sy=(y-camera.y)*camera.z;
-    const visible=Math.abs(sx)<width/2+c.w*z&&Math.abs(sy)<height/2+c.h*z+50;
-    c.button.tabIndex=visible&&Math.abs(sx)<width/2&&Math.abs(sy)<height/2?0:-1;
-    if(visible&&!c.img.getAttribute('src'))c.img.src=c.photo.src;
+    const sx=(c.worldX-camera.x)*camera.z,sy=(c.worldY-camera.y)*camera.z;
+    const visible=Math.abs(sx)<width/2+c.w*camera.z*.6+100&&Math.abs(sy)<height/2+(c.h+40)*camera.z*.6+100;
+    if(c.rendered!==visible) {c.el.style.visibility=visible?'visible':'hidden';c.rendered=visible;}
+    const tabIndex=visible&&Math.abs(sx)<width/2&&Math.abs(sy)<height/2?0:-1;
+    if(c.tabIndex!==tabIndex){c.button.tabIndex=tabIndex;c.tabIndex=tabIndex;}
+    const ahead=Math.max(width,height)*.8;
+    if(!c.queued&&Math.abs(sx)<width/2+ahead&&Math.abs(sy)<height/2+ahead) {c.queued=true;imageQueue.push(c);}
   }
-  if(flight||snapPending||(!pointers.size&&Math.abs(vx)+Math.abs(vy)>.015)||camera.z!==targetZ)requestFrame();
+  if(imageQueue.length) {
+    imageQueue.sort((a,b)=>Math.hypot(a.worldX-camera.x,a.worldY-camera.y)-Math.hypot(b.worldX-camera.x,b.worldY-camera.y));
+    pumpImages();
+  }
+  if(flight||snapPending||(!pointers.size&&Math.abs(vx)+Math.abs(vy)>.015)||(zoomActive&&camera.z!==desiredZoom))requestFrame();
 }
 function zoomAt(factor,sx=width/2,sy=height/2) {
   stopMotion();const old=camera.z;manualZoom=clamp(manualZoom*factor,.4,2.2);
   const next=clamp(old*factor,.12,1.8);
   camera.x+=(sx-width/2)*(1/old-1/next);camera.y+=(sy-height/2)*(1/old-1/next);
-  camera.z=next;requestFrame();
+  camera.z=next;desiredZoom=next;requestFrame();
 }
 function openPhoto(photo,album,trigger) {
   stopMotion();lastFocus=trigger;const img=document.querySelector('#full-photo');
@@ -156,21 +202,24 @@ function makePhoto(photo,album,x,y,w,index) {
 }
 async function init() {
   if(document.fonts) { await document.fonts.load('400 27px Newsreader'); await document.fonts.ready; }
-  const response=await fetch('albums.json?v=messages-1');if(!response.ok)throw Error('The album list could not be loaded.');
+  const response=await fetch('albums.json?v=mobile-2');if(!response.ok)throw Error('The album list could not be loaded.');
   const data=await response.json();
   data.forEach((album,i)=>{
     album.el=document.createElement('section');album.el.className='cluster-group';album.el.setAttribute('aria-label',album.name);album.scale=1;
     albums.push(album);world.append(album.el);
-    const label=document.createElement('div');label.className='cluster-label';
-    if(album.subtitle.length>700)label.classList.add('long-message');
-    const title=document.createElement('h2');title.textContent=album.name;
-    const subtitle=document.createElement('p');subtitle.textContent=album.subtitle;
-    label.append(title,subtitle);album.label=label;album.el.append(label);
+    album.blocks=[];
+    (album.paragraphs||[album.subtitle]).forEach((text,index)=>{
+      const label=document.createElement('div');label.className='cluster-label';
+      if(album.paragraphs)label.classList.add('story-block');
+      if(index===0){const title=document.createElement('h2');title.textContent=album.name;label.append(title);album.label=label;}
+      const paragraph=document.createElement('p');paragraph.textContent=text;label.append(paragraph);album.el.append(label);
+      album.blocks.push({el:label,x:0,y:0});
+    });
     const groups=['large','medium','small'].map(size=>album.photos.filter(p=>p.size===size)),ordered=[];
     while(groups.some(g=>g.length))groups.forEach(g=>{if(g.length)ordered.push(g.shift());});
     ordered.forEach((photo,j)=>makePhoto(photo,album,0,0,{large:290,medium:220,small:155}[photo.size],j));
   });
-  layout();camera.z=baseZoom();requestFrame();
+  layout();camera.z=baseZoom();desiredZoom=camera.z;requestFrame();
 }
 canvas.addEventListener('pointerdown',e=>{
   if(e.button!==0)return;
@@ -222,7 +271,7 @@ window.addEventListener('keydown',e=>{
 photoDialog.querySelector('[data-close]').addEventListener('click',()=>photoDialog.close());
 photoDialog.addEventListener('click',e=>{if(e.target===photoDialog){const r=photoDialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)photoDialog.close();}});
 photoDialog.addEventListener('close',()=>{lastFocus?.focus({preventScroll:true});document.querySelector('#full-photo').removeAttribute('src');});
-window.addEventListener('resize',()=>{stopMotion();width=innerWidth;height=innerHeight;layout();requestFrame();});
+window.addEventListener('resize',()=>{const changed=width!==innerWidth;stopMotion();width=innerWidth;height=innerHeight;if(changed)layout();requestFrame();});
 window.addEventListener('blur',()=>{pointers.clear();if(flight)Object.assign(camera,flight.to);stopMotion();canvas.classList.remove('dragging');requestFrame();});
 reducedMotion.addEventListener('change',()=>{stopMotion();requestFrame();});
 init().catch(error=>{console.error(error);status.textContent=error.message;const note=document.createElement('p');note.className='fallback';note.textContent='The memories could not load. Please refresh, or start the site using the included local server.';document.body.append(note);});

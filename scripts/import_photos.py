@@ -10,8 +10,11 @@ root = Path(args.source).expanduser()
 out = Path(__file__).resolve().parents[1] / 'dist'
 (out / 'assets').mkdir(parents=True, exist_ok=True)
 existing = {}
+existing_paragraphs = {}
 if (out / 'albums.json').exists():
-    existing = {a['name']:a['subtitle'] for a in json.loads((out / 'albums.json').read_text())}
+    existing_albums = json.loads((out / 'albums.json').read_text())
+    existing = {a['name']:a['subtitle'] for a in existing_albums}
+    existing_paragraphs = {a['name']:a['paragraphs'] for a in existing_albums if 'paragraphs' in a}
 albums = []
 for album in sorted(p for p in root.iterdir() if p.is_dir() and not p.name.startswith('.')):
     photos = []
@@ -26,7 +29,7 @@ for album in sorted(p for p in root.iterdir() if p.is_dir() and not p.name.start
             with Image.open(file) as original:
                 img = ImageOps.exif_transpose(original).convert('RGB')
                 width,height = img.size
-                for suffix, maximum in [('thumb',640),('full',1600)]:
+                for suffix, maximum in [('thumb',{'large':640,'medium':480,'small':320}[size]),('full',1600)]:
                     copy = img.copy(); copy.thumbnail((maximum,maximum))
                     copy.save(out / 'assets' / f'{key}-{suffix}.webp', 'WEBP', quality=83, method=6)
             stem = file.stem
@@ -38,5 +41,8 @@ for album in sorted(p for p in root.iterdir() if p.is_dir() and not p.name.start
                            'src':f'assets/{key}-thumb.webp','full':f'assets/{key}-full.webp','source':rel})
     if photos:
         albums.append({'name':album.name,'subtitle':existing.get(album.name,'A little space for the story of these moments. Words to come.'),'photos':photos})
+for album in albums:
+    if album['name'] in existing_paragraphs and ' '.join(existing_paragraphs[album['name']]) == album['subtitle']:
+        album['paragraphs'] = existing_paragraphs[album['name']]
 (out / 'albums.json').write_text(json.dumps(albums,ensure_ascii=False,indent=2)+'\n')
 print(f'Imported {sum(len(a["photos"]) for a in albums)} images across {len(albums)} albums.')
