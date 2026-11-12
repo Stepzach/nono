@@ -56,3 +56,6 @@ dialog::backdrop {background:#ffffffbb;backdrop-filter:blur(12px);-webkit-backdr
   .little-star {margin-bottom:20px}
 }
 @media(prefers-reduced-motion:reduce) {* {scroll-behavior:auto!important;transition:none!important}}
+
+.cluster-label.long-message {width:360px}
+.cluster-label.long-message p {max-width:340px}

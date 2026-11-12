@@ -34,8 +34,19 @@ function layout() {
   // across album boundaries. Every photograph keeps a stable world position.
   const letterScale=homeZoom()/baseZoom();
   letter.style.transform=`translate(-50%,-50%) scale(${letterScale})`;
-  const occupied=[{x:0,y:0,w:(letter.offsetWidth||410)*letterScale+34,h:(letter.offsetHeight||557)*letterScale+34},
-    ...albums.map(a=>({x:a.x,y:a.y,w:(a.label.offsetWidth||310)+24,h:(a.label.offsetHeight||244)+24}))];
+  const occupied=[{x:0,y:0,w:(letter.offsetWidth||410)*letterScale+34,h:(letter.offsetHeight||557)*letterScale+34}];
+  // Reserve the longest messages first, then nudge neighboring albums outward
+  // only as far as needed to keep every paragraph separate and fully readable.
+  const labels=albums.map(a=>({album:a,w:(a.label.offsetWidth||310)+24,h:(a.label.offsetHeight||244)+24})).sort((a,b)=>b.h-a.h);
+  for(const box of labels) {
+    const a=box.album,direction=Math.atan2(a.y,a.x);
+    while(occupied.some(other=>Math.abs(a.x-other.x)<(box.w+other.w)/2&&Math.abs(a.y-other.y)<(box.h+other.h)/2)) {
+      a.x+=Math.cos(direction)*24;a.y+=Math.sin(direction)*24;
+    }
+    a.homeDistance=Math.hypot(a.x,a.y);
+    a.el.style.transform=`translate(${a.x}px,${a.y}px)`;
+    occupied.push({x:a.x,y:a.y,w:box.w,h:box.h});
+  }
   const byAlbum=albums.map(a=>cards.filter(c=>c.album===a));
   const ordered=[];
   for(let i=0;byAlbum.some(group=>group[i]);i++)byAlbum.forEach(group=>{if(group[i])ordered.push(group[i]);});
@@ -145,12 +156,13 @@ function makePhoto(photo,album,x,y,w,index) {
 }
 async function init() {
   if(document.fonts) { await document.fonts.load('400 27px Newsreader'); await document.fonts.ready; }
-  const response=await fetch('albums.json');if(!response.ok)throw Error('The album list could not be loaded.');
+  const response=await fetch('albums.json?v=messages-1');if(!response.ok)throw Error('The album list could not be loaded.');
   const data=await response.json();
   data.forEach((album,i)=>{
     album.el=document.createElement('section');album.el.className='cluster-group';album.el.setAttribute('aria-label',album.name);album.scale=1;
     albums.push(album);world.append(album.el);
     const label=document.createElement('div');label.className='cluster-label';
+    if(album.subtitle.length>700)label.classList.add('long-message');
     const title=document.createElement('h2');title.textContent=album.name;
     const subtitle=document.createElement('p');subtitle.textContent=album.subtitle;
     label.append(title,subtitle);album.label=label;album.el.append(label);
