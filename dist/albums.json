@@ -253,7 +253,8 @@
         "height": 4032,
         "src": "assets/b715c40c7b77d3ad-thumb.webp",
         "full": "assets/b715c40c7b77d3ad-full.webp",
-        "source": "Goofy Nono/Large/IMG_8313.jpg"
+        "source": "Goofy Nono/Large/IMG_8313.jpg",
+        "displayScale": 1.08
       },
       {
         "id": "b67929c3f3c64f39",
@@ -288,7 +289,11 @@
         "height": 4032,
         "src": "assets/9af1a94e090b098f-thumb.webp",
         "full": "assets/9af1a94e090b098f-full.webp",
-        "source": "Goofy Nono/Medium/IMG_6996.jpg"
+        "source": "Goofy Nono/Medium/IMG_6996.jpg",
+        "overviewPosition": {
+          "x": 145,
+          "y": -715
+        }
       },
       {
         "id": "5bd7606b014df508",
@@ -348,7 +353,8 @@
         "height": 5712,
         "src": "assets/8bfe8fd74de08893-thumb.webp",
         "full": "assets/8bfe8fd74de08893-full.webp",
-        "source": "Goofy Nono/Small/IMG_8331.jpg"
+        "source": "Goofy Nono/Small/IMG_8331.jpg",
+        "displayScale": 1.1
       }
     ]
   },
@@ -434,7 +440,8 @@
         "height": 3088,
         "src": "assets/db303b41cd6df536-thumb.webp",
         "full": "assets/db303b41cd6df536-full.webp",
-        "source": "Me and Nono/Medium/IMG_7689.jpg"
+        "source": "Me and Nono/Medium/IMG_7689.jpg",
+        "displayScale": 1.08
       },
       {
         "id": "cb31f85354c101b7",
@@ -520,7 +527,8 @@
     "paragraphs": [
       "Here are some pictures of us together! We need to take more and more and more and better ones! I love every moment we spend together, and nowadays I feel like the moments are so precious and short that its even more difficult. I wish i could slow down time and be with you longer.",
       "Every hour with you feels like a second, it just goes by way too fast jpp. When I'm with you, I stop worrying and stop overthinking about everything going on in my life, im just present in the moment. I can't wait for the next time im seeing you (Jeudi 26) and im counting every second until i get to hold your hand and look into your eyes. (starring contest ??)"
-    ]
+    ],
+    "compactText": true
   },
   {
     "name": "Music with Nono",
@@ -751,7 +759,11 @@
         "height": 5712,
         "src": "assets/2d93e21fa7b12383-thumb.webp",
         "full": "assets/2d93e21fa7b12383-full.webp",
-        "source": "Nono's Outfits/Large /IMG_7226.jpg"
+        "source": "Nono's Outfits/Large /IMG_7226.jpg",
+        "overviewPosition": {
+          "x": -350,
+          "y": 740
+        }
       },
       {
         "id": "4ca9069a9671bb2d",

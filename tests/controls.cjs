@@ -21,7 +21,7 @@ assert(run('albums.every(a=>a.scale===1)'));
 assert.equal(run('albums.length'),8);
 assert(run('albums.every(a=>!a.paragraphs||a.paragraphs.join(" ")===a.subtitle)'));
 assert(run('cards.every(c=>albums.every(a=>a.blocks.every(b=>Math.abs(c.worldX-a.x-b.x)>(c.w+b.w)/2||Math.abs(c.worldY-a.y-b.y)>(c.h+b.h)/2+12)))'));
-assert(run('albums.every(a=>a.blocks.slice(1).every((b,i)=>{const p=cards.filter(c=>c.album===a&&c.photo.id!==a.leadPhotoId)[i],previous=a.blocks[i];return p.pinned&&(a.leadPhotoId?b.x===previous.x&&b.y-b.h/2>=previous.y+previous.h/2+27&&p.y===b.y&&Math.abs(p.x-b.x)>(p.w+b.w)/2:p.y-p.h/2>previous.y+previous.h/2&&p.y+p.h/2<b.y-b.h/2);}))'));
+assert(run('albums.every(a=>a.blocks.slice(1).every((b,i)=>{const p=cards.filter(c=>c.album===a&&c.photo.id!==a.leadPhotoId)[i],previous=a.blocks[i];return p.pinned&&(a.compactText?b.x===previous.x&&b.y-b.h/2>=previous.y+previous.h/2+27&&p.x===b.x&&p.y-p.h/2>b.y+b.h/2:a.leadPhotoId?b.x===previous.x&&b.y-b.h/2>=previous.y+previous.h/2+27&&p.y===b.y&&Math.abs(p.x-b.x)>(p.w+b.w)/2:p.y-p.h/2>previous.y+previous.h/2&&p.y+p.h/2<b.y-b.h/2);}))'));
 assert(run('albums.filter(a=>a.leadPhotoId).every(a=>{const p=cards.find(c=>c.photo.id===a.leadPhotoId),b=a.blocks[0];return p.pinned&&p.x===b.x&&p.y+p.h/2+26<b.y-b.h/2;})'));
 assert(run('initialZoom()<baseZoom()'),'Mobile opening is not zoomed out');
 
@@ -36,12 +36,12 @@ assert(run('camera.x')>0);assert(run('suppressClickUntil')>clock);
 const finish=run('({x:100-(albums[3].x+80-camera.x)*camera.z,y:400-(albums[3].y-camera.y)*camera.z})');
 clock+=16;c.emit('pointermove',{pointerId:1,clientX:finish.x,clientY:finish.y});
 clock+=120;c.emit('pointerup',{pointerId:1});for(let i=0;i<250;i++)tick();
-assert(Math.abs(run('camera.x-albums[3].x'))<.01);assert(Math.abs(run('camera.y-albums[3].y'))<.01);
+assert(Math.abs(run('camera.x-albums[3].x-80'))<.01,'Mobile pan snaps to the cluster');assert.equal(run('flight'),null);assert(Math.abs(run('camera.y-albums[3].y'))<.01);
 assert.equal(run('camera.z'),before,'Mobile snap automatically zooms');assert(run('albums[3].scale')===1);
 assert.equal(run('JSON.stringify(cards.map(c=>[c.x,c.y,c.album.x,c.album.y]))'),positions);
 assert(run('cards.every(c=>Math.abs((c.worldX-camera.x)*camera.z)>=width/2+c.w*camera.z/2||Math.abs((c.worldY-camera.y)*camera.z)>=height/2+(c.h+30)*camera.z/2||c.el.style.visibility==="visible")'));
-assert.equal(run('cards.filter(c=>c.pinned).length'),6);
-assert(run('cards.filter(c=>c.photo.overviewPosition).length===2&&cards.filter(c=>c.photo.overviewPosition).every(c=>c.pinned&&c.worldX===c.photo.overviewPosition.x&&c.worldY===c.photo.overviewPosition.y)'));
+assert.equal(run('cards.filter(c=>c.pinned).length'),8);
+assert(run('cards.filter(c=>c.photo.overviewPosition).length===4&&cards.filter(c=>c.photo.overviewPosition).every(c=>c.pinned&&c.worldX===c.photo.overviewPosition.x&&c.worldY===c.photo.overviewPosition.y)'));
 assert.equal(run('albums.reduce((n,a)=>n+a.blocks.length,0)'),11);
 assert(run('imageLoads<=3'));
 const writes=run('cards.reduce((n,c)=>n+c.button.tabWrites,0)');
@@ -89,14 +89,16 @@ assert(run('albums.every(a=>a.shapes.every(s=>fitsHeart({...s,x:a.x+s.x,y:a.y+s.
 assert(run('cards.some(c=>c.worldX < -600 && c.worldY < -1200) && cards.some(c=>c.worldX > 600 && c.worldY < -1200)'));
 assert(run('!cards.some(c=>Math.abs(c.worldX)<200&&c.worldY < -1400)'));
 assert(run('Math.abs((sceneBounds.bottom+sceneBounds.top)/2)<400'),'Heart is not centered around the opening message');
-assert(run('cards.every(c=>{const own=Math.min(...c.album.blocks.map(b=>Math.hypot(c.x-b.x,c.y-b.y)));return own<1700&&albums.every(a=>a===c.album||Math.min(...a.blocks.map(b=>Math.hypot(c.worldX-a.x-b.x,c.worldY-a.y-b.y)))+651>=own);})'),'Photos stray from their album text');
+assert(run('cards.every(c=>{const own=Math.min(...c.album.blocks.map(b=>Math.hypot(c.x-b.x,c.y-b.y)));return own<1700&&albums.every(a=>a===c.album||Math.min(...a.blocks.map(b=>Math.hypot(c.worldX-a.x-b.x,c.worldY-a.y-b.y)))+801>=own);})'),'Photos stray from their album text');
 win.emit('keydown',{key:'Home'});tick();assert.equal(run('camera.x'),0);assert.equal(run('camera.y'),0);
 // Desktop retains its gentle approach zoom; explicit mobile zoom remains manual.
 run('innerWidth=1440;innerHeight=1000;coarsePointer.matches=false');win.emit('resize');tick();
 run('manualZoom=1;goTo(0,0,initialZoom())');for(let i=0;i<60;i++)tick();
 const desktopZoom=run('camera.z');run('goTo(albums[3].x,albums[3].y)');for(let i=0;i<60;i++)tick();
 assert(run('camera.z')>desktopZoom);
-const html=fs.readFileSync(path.join(root,'dist/index.html'),'utf8');assert(!html.includes('id="places"'));assert(!html.includes('class="controls"'));assert(!html.includes('little-star'));assert(!html.includes('a little world of us'));assert(html.includes('drag gently, in any direction'));assert(html.includes('↖')&&html.includes('↗'));
+run('manualZoom=1;camera.x=0;camera.y=0;beginGesture();camera.x=albums[3].x+80;camera.y=albums[3].y;maybeSnap()');for(let i=0;i<60;i++)tick();
+assert(Math.abs(run('camera.x-albums[3].x'))<.01,'Desktop cluster snapping is lost');
+const html=fs.readFileSync(path.join(root,'dist/index.html'),'utf8');assert(!html.includes('id="places"'));assert(!html.includes('class="controls"'));assert(!html.includes('little-star'));assert(!html.includes('a little world of us'));assert(!html.includes('class="invitation"'));assert(!html.includes('drag gently, in any direction'));assert(!html.includes('↖')&&!html.includes('↗'));
 // Verify every generated image is present and original album counts are preserved.
 const albums=JSON.parse(fs.readFileSync(path.join(root,'dist/albums.json')));assert.deepEqual(albums.map(a=>a.photos.length),[5,17,11,16,11,8,9,3]);for(const a of albums)for(const p of a.photos){assert(fs.statSync(path.join(root,'dist',p.src)).size>0);assert(fs.statSync(path.join(root,'dist',p.full)).size>0)}
 console.log('PASS: heart outline; whole-scene phone zoom; round centered heart; grouped photos; yellow-jumper lead photo; stable overview; manual mobile zoom; stable drag zoom; bounded image loading; no repeated photo writes; stable height-only resize; interleaved stories; 80 photos / 8 albums; global photo spacing; stable positions; persistent visibility; larger distant photos; approach growth; long-drag snap; free movement inside clusters; pinch; cancellation; focus loss; reduced motion; no controls; all four outer edges reachable; 160 assets.');

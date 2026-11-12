@@ -8,7 +8,7 @@ const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 const camera = { x: 0, y: 0, z: 1 };
 const albums = [], cards = [], pointers = new Map(), imageQueue = [];
 let imageLoads = 0, desiredZoom = 1;
-const assetVersion = "heart-4";
+const assetVersion = "heart-6";
 let width = innerWidth, height = innerHeight, frame = 0, previousTime = 0;
 let vx = 0, vy = 0, flight = null, wheelTimer, manualZoom = 1;
 let suppressClickUntil = 0, lastPointerTime = 0, dragDistance = 0;
@@ -55,7 +55,7 @@ function pumpImages() {
 function layout() {
   // Keep each album together around a broad, rounded heart.
   // Photo groups balance the two lobes around the opening message.
-  const slots=[[1100,1000],[-1250,-400],[1000,-1150],[1100,-150],[-850,-1050],[-1350,550],[-250,700],[0,950]];
+  const slots=[[1100,1000],[-1250,-400],[1000,-1150],[1100,-150],[-850,-1050],[-1350,550],[-700,740],[0,950]];
   albums.forEach((a,i)=>{
     [a.x,a.y]=slots[i%slots.length];a.scale=1;
   });
@@ -80,7 +80,11 @@ function layout() {
       block.w=block.el.offsetWidth||310;block.h=block.el.offsetHeight||244;block.x=0;block.y=0;
       if(i>0) {
         const previous=a.blocks[i-1],photo=between[i-1];photo.pinned=true;
-        if(a.leadPhotoId) {
+        if(a.compactText) {
+          block.y=previous.y+previous.h/2+28+block.h/2;
+          // Put the photograph in the continuation paragraph's previous spot.
+          photo.x=0;photo.y=previous.y+previous.h/2+64+photo.h+26+block.h/2;
+        } else if(a.leadPhotoId) {
           block.y=previous.y+previous.h/2+28+block.h/2;
           photo.x=(i%2?-1:1)*(block.w/2+40+photo.w/2);photo.y=block.y;
         } else {
@@ -135,7 +139,7 @@ function layout() {
         const angle=preferred+offset;
         const candidate={x:c.album.x+block.x+Math.cos(angle)*radius,y:c.album.y+block.y+Math.sin(angle)*radius,...box};
         const ownDistance=distanceTo(candidate,c.album);
-        const belongsHere=albums.every(a=>a===c.album||distanceTo(candidate,a)+650>=ownDistance);
+        const belongsHere=albums.every(a=>a===c.album||distanceTo(candidate,a)+800>=ownDistance);
         if(belongsHere&&fitsHeart(candidate)&&!occupied.some(other=>overlaps(candidate,other))) {position=candidate;break;}
       }
     }
@@ -166,8 +170,8 @@ function beginGesture() {
 function maybeSnap() {
   snapPending=false;
   if(!gestureStart) return;
-  // Keep an explicitly zoomed-out overview still when it is panned.
-  if(manualZoom<.75){gestureStart=null;return;}
+  // Mobile stays entirely free; the zoomed-out desktop overview does too.
+  if(mobileView()||manualZoom<.75){gestureStart=null;return;}
   const travel=Math.hypot(camera.x-gestureStart.x,camera.y-gestureStart.y),n=nearest();
   // Small movements inside a cluster stay exactly where the visitor leaves them.
   if(n&&travel>120&&(!gestureStart.inside||travel>480)&&n.distance<Math.min(510,n.album.homeDistance*.6)) {
@@ -244,7 +248,7 @@ function makePhoto(photo,album,x,y,w,index) {
 }
 async function init() {
   if(document.fonts) { await document.fonts.load('400 27px Newsreader'); await document.fonts.ready; }
-  const response=await fetch('albums.json?v=heart-4');if(!response.ok)throw Error('The album list could not be loaded.');
+  const response=await fetch('albums.json?v=heart-6');if(!response.ok)throw Error('The album list could not be loaded.');
   const data=await response.json();
   data.forEach((album,i)=>{
     album.el=document.createElement('section');album.el.className='cluster-group';album.el.setAttribute('aria-label',album.name);album.scale=1;
