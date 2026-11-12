@@ -11,9 +11,13 @@ out = Path(__file__).resolve().parents[1] / 'dist'
 (out / 'assets').mkdir(parents=True, exist_ok=True)
 existing = {}
 existing_paragraphs = {}
+existing_lead_photos = {}
+existing_photo_layouts = {}
 if (out / 'albums.json').exists():
     existing_albums = json.loads((out / 'albums.json').read_text())
     existing = {a['name']:a['subtitle'] for a in existing_albums}
+    existing_photo_layouts = {p['id']:{k:p[k] for k in ('overviewPosition','displayScale') if k in p} for a in existing_albums for p in a['photos']}
+    existing_lead_photos = {a['name']:a['leadPhotoId'] for a in existing_albums if 'leadPhotoId' in a}
     existing_paragraphs = {a['name']:a['paragraphs'] for a in existing_albums if 'paragraphs' in a}
 albums = []
 for album in sorted(p for p in root.iterdir() if p.is_dir() and not p.name.startswith('.')):
@@ -42,6 +46,11 @@ for album in sorted(p for p in root.iterdir() if p.is_dir() and not p.name.start
     if photos:
         albums.append({'name':album.name,'subtitle':existing.get(album.name,'A little space for the story of these moments. Words to come.'),'photos':photos})
 for album in albums:
+    for photo in album['photos']:
+        photo.update(existing_photo_layouts.get(photo['id'], {}))
+    lead = existing_lead_photos.get(album['name'])
+    if any(p['id'] == lead for p in album['photos']):
+        album['leadPhotoId'] = lead
     if album['name'] in existing_paragraphs and ' '.join(existing_paragraphs[album['name']]) == album['subtitle']:
         album['paragraphs'] = existing_paragraphs[album['name']]
 (out / 'albums.json').write_text(json.dumps(albums,ensure_ascii=False,indent=2)+'\n')

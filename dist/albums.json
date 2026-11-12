@@ -273,7 +273,12 @@
         "height": 5712,
         "src": "assets/016a97eef993dfd8-thumb.webp",
         "full": "assets/016a97eef993dfd8-full.webp",
-        "source": "Goofy Nono/Medium/IMG_6969.jpg"
+        "source": "Goofy Nono/Medium/IMG_6969.jpg",
+        "overviewPosition": {
+          "x": 145,
+          "y": -1100
+        },
+        "displayScale": 0.96
       },
       {
         "id": "9af1a94e090b098f",
@@ -529,7 +534,12 @@
         "height": 1600,
         "src": "assets/56b27d9c0c19aadb-thumb.webp",
         "full": "assets/56b27d9c0c19aadb-full.webp",
-        "source": "Music with Nono/Medium/07500a46-f1d0-4cc6-95da-9e9596b18bb9.jpg"
+        "source": "Music with Nono/Medium/07500a46-f1d0-4cc6-95da-9e9596b18bb9.jpg",
+        "overviewPosition": {
+          "x": -145,
+          "y": -1080
+        },
+        "displayScale": 0.96
       },
       {
         "id": "1a40e45fdb90e3fc",
@@ -854,6 +864,7 @@
       "Our first date, in the jardin du Luxenbourg, It was a random tuesday, and you made it feel like a friday. I arrived thinking it will be another typical date, talking about normal typical stuff and then we would go home. But I was so wrong. I think i fell in love within the first 15 minutes.",
       "You have a way of making everything sound interesting and fun. It was the first time really speaking with you and we already had so many , varied and deep conversations, fun conversations, intellectual conversations, all while learning about each other. You are so good at this. This might be my favourite thing about you.",
       "I know im not the easiest person to talk to , i know i can be closed off or boring .. im not going to pretend im not. But somehow with you, I can speak my mind , i can say what i want and I love that so much. After, we ended up walking around randomly until it started getting dark, and it retrospectively this date was a perfect preview of everything we still do today! You are so unapologetically yourself , its so fking attractive and Im trying to learn to be like this!"
-    ]
+    ],
+    "leadPhotoId": "bc29c63302963605"
   }
 ]

@@ -26,14 +26,14 @@ button:focus-visible {outline:2px solid #000;outline-offset:5px}
 h1 {font-weight:400;margin:0}
 .salutation {font-style:italic;font-size:58px;display:block;margin-bottom:26px;letter-spacing:-2px}
 .message {display:block;font-size:27px;line-height:1.45;letter-spacing:-.55px}
-#letter p {font-size:17px;line-height:1.7;max-width:380px;margin:26px auto 0}
+#letter p {font-size:18px;line-height:1.55;max-width:380px;margin:26px auto 0}
 .invitation {margin-top:36px;letter-spacing:2px;font-size:11px}
 .invitation>span {display:inline-block;margin:0 12px;font-size:16px}
 .invitation small {display:block;margin-top:9px;letter-spacing:.8px;font-size:11px}
 .cluster-group {position:absolute;left:0;top:0;transform-origin:0 0}
 .cluster-label {position:absolute;width:310px;text-align:center;transform:translate(-50%,-50%);user-select:none}
 .cluster-label h2 {font-size:40px;line-height:1.13;font-weight:400;letter-spacing:-1px;margin:0 0 16px}
-.cluster-label p {font-size:18px;line-height:1.55;margin:0 auto;max-width:280px}
+.cluster-label p {font-size:19px;line-height:1.45;margin:0 auto;max-width:280px}
 .cluster-label::after {content:'✧';display:block;margin-top:16px}
 .photo {position:absolute;margin:0;transform:translate(-50%,-50%);user-select:none}
 .photo-button {display:block;width:100%;padding:0;border:0;background:none;border-radius:10px;transform:rotate(var(--rotation));transition:filter .3s;position:relative}
